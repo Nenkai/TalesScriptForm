@@ -6,8 +6,18 @@ namespace TalesScriptForm;
 
 public class Program
 {
+    public const string Version = "0.1.1";
+
     static void Main(string[] args)
     {
+        Console.WriteLine("-----------------------------------------");
+        Console.WriteLine($"- TalesScriptForm {Version} by Nenkai");
+        Console.WriteLine("-----------------------------------------");
+        Console.WriteLine("- https://github.com/Nenkai");
+        Console.WriteLine("- https://twitter.com/Nenkaai");
+        Console.WriteLine("-----------------------------------------");
+        Console.WriteLine("");
+
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         if (args.Length == 0)
