@@ -12,11 +12,33 @@ public class Program
 
         if (args.Length == 0)
         {
-            Console.WriteLine("Usage: TalesScriptForm <path to SCFOMBIN/SCR (v3) or SFM2 (v2) file>");
+            Console.WriteLine("Usage: TalesScriptForm <path to SCFOMBIN/SCR (v3) or SFM2 (v2) file or directory>");
             return;
         }
 
-        var fs = File.OpenRead(args[0]);
+        if (Directory.Exists(args[0]))
+        {
+            foreach (var file in  Directory.GetFiles(args[0]))
+            {
+                try
+                {
+                    ProcessFile(file);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error for '{file}': {ex.Message}");
+                }
+            }
+        }
+        else if (File.Exists(args[0]))
+        {
+            ProcessFile(args[0]);
+        }
+    }
+
+    private static void ProcessFile(string file)
+    {
+        var fs = File.OpenRead(file);
         byte[] magic = fs.ReadBytes(8);
         fs.Position = 0;
 
@@ -34,6 +56,8 @@ public class Program
             throw new InvalidDataException("Not a SCFOM file.");
         }
 
-        scriptForm.Disassemble(fs, args[0] + ".diss");
+        Console.WriteLine($"Disassembling '{file}'...");
+
+        scriptForm.Disassemble(fs, file + ".diss");
     }
 }

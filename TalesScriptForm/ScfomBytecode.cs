@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 using Syroot.BinaryData;
 using Syroot.BinaryData.Memory;
@@ -32,6 +33,7 @@ public class ScfomBytecode
             inst.InstOffset = (uint)(bs.Position - 1);
             inst.ReadData(bs, version);
 
+            Debug.Assert(bs.Position == instOffset + instSize, "Instruction was not read in full");
             bs.Position = instOffset + instSize;
 
             Instructions.Add(inst);
@@ -45,6 +47,7 @@ public class ScfomBytecode
     // Note 3: Stack size is 0x800. multiply by 8 or 4 depending on pointer size.
     // Note 4: SCFOM push const can have register index 8, which should be invalid. How is it handled?
     // Note 5: Static data declared in initialize { } blocks are simply shoved into the data section and addressed just like a regular C compiler would, with offsets.
+    // Note 6: ToV DE executable has a list of syscalls unreferenced no other games seem to do.
 
     public void Disassemble(ScriptFormBase file, StreamWriter sw)
     {
@@ -55,10 +58,9 @@ public class ScfomBytecode
         else
             sw.WriteLine($"  // func_{Instructions[0].InstOffset:X}");
 
-        int lastLikelySyscallNumber = 0;
-        uint syscallPushIntOffset = 0;
-
         const int CommentPadRight = 60;
+
+        Stack<(int SyscallNum, int PushIntOffset)> syscallGuesses = new();
 
         for (int i = 0; i < Instructions.Count; i++)
         {
@@ -70,16 +72,63 @@ public class ScfomBytecode
                 case ScfomInstructionType.SCFOM_INST_SYSCALL:
                     {
                         var syscall = inst as ScfomInstSyscall;
-
                         if (file.Version >= 30000)
                         {
-                            instStr += $"SYSCALL: syscall_{lastLikelySyscallNumber & 0xFFFFFF}() ({syscall.Flags}, {syscall.NumArgs} arg(s))".PadRight(CommentPadRight);
-                            instStr += $"; guessed syscall from {syscallPushIntOffset:X}";
+                            // Syscall number is in stack
+                            string name;
+
+                            int lastNum = -1337;
+                            int sysCallOffset = 0;
+                            if (syscallGuesses.Count > 0)
+                            {
+                                var (SyscallNum, PushIntOffset) = syscallGuesses.Pop();
+                                lastNum = SyscallNum;
+                                sysCallOffset = PushIntOffset;
+                            }
+
+                            if (lastNum != -1337)
+                            {
+                                int id = lastNum & 0xFFFFFF;
+                                if (file.Version == 31600) // Tales of Xillia
+                                {
+                                    if (Enum.IsDefined((ScfomSyscall_V31600)id))
+                                        name = ((ScfomSyscall_V31600)id).ToString();
+                                    else
+                                        name = $"syscall_{id}";
+                                }
+                                else if (file.Version == 30100) // Tales of Vesperia, we have all syscalls for it.
+                                    name = ((ScfomSyscall_V30100)(id)).ToString();
+                                else
+                                    name = $"syscall_{id}";
+
+                                instStr += $"SYSCALL: {name}() ({syscall.Flags}, {syscall.NumArgs} arg(s))".PadRight(CommentPadRight);
+                                instStr += $"; id: {id}, guessed syscall from {sysCallOffset:X}";
+                            }
+                            else
+                            {
+                                instStr += $"SYSCALL: syscall_?() ({syscall.Flags}".PadRight(CommentPadRight);
+                                instStr += $"; could not locate syscall from stack, it may be above";
+                            }
                         }
                         else
                         {
-                            instStr += $"SYSCALL: syscall_{syscall.SyscallNumber}(), {syscall.NumArgs} arg(s)";
+                            // Syscall number in instruction
+                            int num = syscall.SyscallNumber;
+                            string name;
+                            if (file.Version == 20100) // Tales of Rebirth
+                            {
+                                if (Enum.IsDefined((ScfomSyscall_V20100)num))
+                                    name = ((ScfomSyscall_V20100)num).ToString();
+                                else
+                                    name = $"syscall_{num}";
+                            }
+                            else
+                                name = $"syscall_{num}";
+
+                            instStr += $"SYSCALL: {name}() ({syscall.NumArgs} arg(s))".PadRight(CommentPadRight);
+                            instStr += $"; id: {syscall.SyscallNumber}";
                         }
+
                     }
                     break;
                 case ScfomInstructionType.SCFOM_INST_CALL:
@@ -116,8 +165,7 @@ public class ScfomBytecode
 
                         if ((pushInt.Value & 0x10000000) != 0 && pushInt.Value >= 0x10000000 && pushInt.Value <= 0x1000FFFF)
                         {
-                            lastLikelySyscallNumber = (int)pushInt.Value;
-                            syscallPushIntOffset = inst.InstOffset;
+                            syscallGuesses.Push(((int)pushInt.Value, (int)inst.InstOffset));
                         }
                     }
                     break;
@@ -134,7 +182,11 @@ public class ScfomBytecode
                                 {
                                     SpanReader sr = new SpanReader(file.FileBytes);
                                     sr.Position = (int)(file.StringTableOffset + pushConst.Offset);
-                                    sr.Encoding = Encoding.GetEncoding(932);
+
+                                    sr.Encoding = file.Version >= 31600 ? 
+                                        Encoding.UTF8 : // New swapped to UTF8
+                                        Encoding.GetEncoding(932); // Old is Shift-JIS
+
                                     string str = sr.ReadString0();
                                     instStr += $"PUSH_CONST: \"{str}\"".PadRight(CommentPadRight) + $"; StringTable, RelativeOffset: {pushConst.Offset:X}";
                                 }
