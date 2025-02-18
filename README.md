@@ -8,7 +8,7 @@ Tales of Rebirth has an uncompiled script file lying around.
 
 Scfom is known to be used in:
 
-* Tales of Destiny (v1, `SFM_`, version 1020)
+* Tales of Destiny 2 (v1, `SFM_`, version 1020)
 * Tales of Rebirth (v2, `SFM2`, version 20100)
 * Tales of Vesperia (v3, `SCFOMBIN`, version 30100)
 * Tales of Xillia (v3, `SCFOMBIN`, version 31600)
