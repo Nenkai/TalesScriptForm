@@ -17,6 +17,7 @@ public class ScriptFormBase
     // ToX: 31600
     // ToV: 30100
     // ToR: 20100
+    // ToD2: 1020
     public uint Version { get; set; }
 
     public uint FileSize { get; set; }
@@ -45,9 +46,9 @@ public class ScriptFormBase
         sw.WriteLine($"// DataOffset: 0x{DataOffset:X}");
         sw.WriteLine($"// StringTableOffset: 0x{StringTableOffset:X}");
         sw.WriteLine($"// EntrypointCodeOffset: 0x{CodeOffset + MainCodeOffset:X} (Relative: 0x{MainCodeOffset:X})");
-        sw.WriteLine($"// Unk1: 0x{Unk5:X}");
-        sw.WriteLine($"// Unk2: 0x{Unk6:X}");
-        sw.WriteLine($"// Unk3: 0x{Unk7:X}");
+        sw.WriteLine($"// Unk5: 0x{Unk5:X}");
+        sw.WriteLine($"// Unk6: 0x{Unk6:X}");
+        sw.WriteLine($"// Unk7: 0x{Unk7:X}");
 
         sw.WriteLine($"// Func Infos ({FinalizersInfo.Count})");
 

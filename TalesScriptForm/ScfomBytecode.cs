@@ -115,13 +115,8 @@ public class ScfomBytecode
                             // Syscall number in instruction
                             int num = syscall.SyscallNumber;
                             string name;
-                            if (file.Version == 20100) // Tales of Rebirth
-                            {
-                                if (Enum.IsDefined((ScfomSyscall_V20100)num))
-                                    name = ((ScfomSyscall_V20100)num).ToString();
-                                else
-                                    name = $"syscall_{num}";
-                            }
+                            if (file.Version == 20100) // Tales of Rebirth, we also have all syscalls
+                                name = ((ScfomSyscall_V20100)num).ToString();
                             else
                                 name = $"syscall_{num}";
 
