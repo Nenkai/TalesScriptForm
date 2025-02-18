@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TalesScriptForm": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Safe\\Reverse-Engineering\\ToV-DE\\00139932.SFB"
+    }
+  }
+}
